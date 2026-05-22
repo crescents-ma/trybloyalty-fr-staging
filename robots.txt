@@ -1,0 +1,5 @@
+User-agent: *
+Allow: /
+Disallow: /politique-confidentialite/
+
+Sitemap: https://trybloyalty.fr/sitemap.xml
