@@ -2,7 +2,7 @@ name: Build and Deploy TRYB Loyalty Sites
 
 on:
   push:
-    branches: [main]
+    branches: [main, master]
     paths:
       - 'generate.js'
       - 'content.js'
