@@ -1,0 +1,73 @@
+name: Build and Deploy TRYB Loyalty Sites
+
+on:
+  push:
+    branches: [main]
+    paths:
+      - 'generate.js'
+      - 'content.js'
+      - 'content/**'
+      - '.github/workflows/deploy.yml'
+  workflow_dispatch:
+
+jobs:
+  build-and-deploy:
+    runs-on: ubuntu-latest
+    timeout-minutes: 15
+
+    steps:
+      - name: Checkout
+        uses: actions/checkout@v4
+
+      - name: Set up Node.js
+        uses: actions/setup-node@v4
+        with:
+          node-version: '20'
+
+      - name: Generate static sites
+        run: node generate.js
+
+      - name: Verify output
+        run: |
+          set -e
+          for locale in ma fr com es; do
+            test -f dist/$locale/index.html  || (echo "MISSING: dist/$locale/index.html" && exit 1)
+            test -f dist/$locale/sitemap.xml || (echo "MISSING: dist/$locale/sitemap.xml" && exit 1)
+            test -f dist/$locale/robots.txt  || (echo "MISSING: dist/$locale/robots.txt"  && exit 1)
+            echo "  dist/$locale: ✓"
+          done
+
+      # ── Cloudflare Pages deployments ──────────────────────────────────────
+      # Required GitHub repository secrets:
+      #   CLOUDFLARE_API_TOKEN  — CF token with "Cloudflare Pages: Edit" permission
+      #   CLOUDFLARE_ACCOUNT_ID — From cloudflare.com dashboard right sidebar
+      # CF Pages projects must be created ONCE in the UI (free tier, no spend).
+      # Project names: trybloyalty-com, trybloyalty-fr, trybloyalty-ma, trybloyalty-es
+
+      - name: Deploy trybloyalty.com
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist/com --project-name=trybloyalty-com --branch=main --commit-dirty=true
+
+      - name: Deploy trybloyalty.fr
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist/fr --project-name=trybloyalty-fr --branch=main --commit-dirty=true
+
+      - name: Deploy trybloyalty.ma
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist/ma --project-name=trybloyalty-ma --branch=main --commit-dirty=true
+
+      - name: Deploy trybloyalty.es
+        uses: cloudflare/wrangler-action@v3
+        with:
+          apiToken: ${{ secrets.CLOUDFLARE_API_TOKEN }}
+          accountId: ${{ secrets.CLOUDFLARE_ACCOUNT_ID }}
+          command: pages deploy dist/es --project-name=trybloyalty-es --branch=main --commit-dirty=true
